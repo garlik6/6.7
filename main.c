@@ -77,8 +77,8 @@ void DeleteVertex(Graph* G, int v);
 int FindVertex(Graph* G, char* name);
 void SearchAdjacent(Graph* G, int n, int a, int* color, int* j);
 int FindPath(struct Graph* G, int V1, int V2);
-path* PathBorn(unsigned **g, unsigned **d, unsigned v1, unsigned v2, unsigned size);
-int revealing (unsigned **g, unsigned **d, unsigned v1, unsigned v2, path *path1 , unsigned size); // рекурсивная функция восстановления пути
+path* PathBorn(unsigned size, unsigned g[size] [size], unsigned d[size] [size], unsigned v1, unsigned v2);
+int revealing (unsigned size, unsigned g[size] [size], unsigned d[size] [size], unsigned v1, unsigned v2, path *path1); // рекурсивная функция восстановления пути
 
 //          [ВВОД]
 char* getstring();    //ввод строчки
@@ -776,7 +776,7 @@ int FindPath(Graph* G, int V1, int V2)
     }
 
     path *Short = (path*) calloc(1,sizeof(path));
-    Short->Begin = (int*) calloc(1,sizeof(int));
+    Short->Begin = calloc(1,sizeof(unsigned));
     Short->len = 0;
 //    int* mom = Short->Begin;
 //    int count = 0;
@@ -793,10 +793,10 @@ int FindPath(Graph* G, int V1, int V2)
     return d[V1][V2];
 }
 
-int revealing (unsigned **g, unsigned **d, unsigned v1, unsigned v2, path *path1,unsigned size) // рекурсивная функция восстановления пути
+int revealing (unsigned size, unsigned *g, unsigned *d, unsigned v1, unsigned v2, path *path1) // рекурсивная функция восстановления пути
 {
     unsigned r;
-    r = *(g+v1*size+v2);
+    r = g[v1][v2];
     if(v1 == v2)
         return 0;
     revealing(g, d, v1, r, path1, size);
@@ -813,10 +813,10 @@ int revealing (unsigned **g, unsigned **d, unsigned v1, unsigned v2, path *path1
     return 0;
 }
 
-path* PathBorn(unsigned **g, unsigned **d, unsigned v1, unsigned v2, unsigned size)
+path* PathBorn(unsigned size, unsigned g[size] [size], unsigned d[size] [size], unsigned v1, unsigned v2)
 {
     path *path1 = calloc(1,sizeof(path));
     path1->Begin = calloc(1,sizeof(unsigned));
-    revealing(g, d, v1, v2, path1, size);
+    revealing(size, g, d, v1, v2, path1);
     return path1;
 }
