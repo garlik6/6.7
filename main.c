@@ -45,7 +45,10 @@ typedef struct Graph {     //структура графа
     Vertex** Vert;         //массив вершин
     int size;              //размер графа
 }Graph;
-
+typedef struct path{
+    unsigned *Begin;
+    unsigned len;
+} path;
 int F0_Menu();                //меню
 int F1_Exit(Graph* G, char* filename);           //завершение программы
 int F2_Random(Graph* G,char* filename);        //создание рандомного графа
@@ -53,7 +56,7 @@ int F3_AddVertex(Graph* G,char* filename);     //добавление верши
 int F4_AddCommunication(Graph* G, char* filename);//добавление ребра
 int F5_DeleteVert(Graph* G, char* filename);    //удаление вершины
 int F6_PrintGraph(Graph* G, char* filename);    //вывод графа
-int F7_Search(Graph* G, char* filename);        //поиск
+int F7_SearchPath(Graph* G, char* filename);        //поиск
 int F8_FreeGraph(Graph* G, char* filename);     //удаление графа
 //int F9_Timing();              //таймирование
 
@@ -73,6 +76,9 @@ void DeleteVertex(Graph* G, int v);
 //          [ПОИСК]
 int FindVertex(Graph* G, char* name);
 void SearchAdjacent(Graph* G, int n, int a, int* color, int* j);
+int FindPath(struct Graph* G, int V1, int V2);
+path* PathBorn(unsigned **g, unsigned **d, unsigned v1, unsigned v2, unsigned size);
+int revealing (unsigned **g, unsigned **d, unsigned v1, unsigned v2, path *path1 , unsigned size); // рекурсивная функция восстановления пути
 
 //          [ВВОД]
 char* getstring();    //ввод строчки
@@ -97,7 +103,7 @@ int main()
 {
     Graph G = { NULL, 0};
     int ex = 0, menu = -1, flag = 0, choose;
-    int(*fun1[]) (Graph*, char*) = { NULL, F1_Exit, F2_Random, F3_AddVertex, F4_AddCommunication, F5_DeleteVert, F6_PrintGraph, F7_Search, F8_FreeGraph};
+    int(*fun1[]) (Graph*, char*) = { NULL, F1_Exit, F2_Random, F3_AddVertex, F4_AddCommunication, F5_DeleteVert, F6_PrintGraph, F7_SearchPath, F8_FreeGraph};
     G.Vert = (Vertex**)calloc(1, sizeof(Vertex*));
     G.size = 0;
     printf("Enter file name \n");
@@ -263,24 +269,50 @@ int F6_PrintGraph(Graph* G, char* filename)
     }
 }
 //поиск                                     +
-int F7_Search(Graph* G, char* filename)
-{
-    printf("\n   [SEARCH]\n");
+//int F7_Search(Graph* G, char* filename)
+//{
+//    printf("\n   [SEARCH]\n");
+//    if (CheckGraph(G))
+//        return 0;
+//    char* name;
+//    int V, j=0;
+//    printf("Enter vertexs' name:");
+//    name = getstring("");
+//    V = FindVertex(G, name);
+//    if (V == -1) {
+//        printf("The vertex wasn't found.\n");
+//        return 0;
+//    }
+//    int* color = (int*)calloc(G->size, sizeof(int)); //0-белая,1-серая,-1-черная
+//    SearchAdjacent(G, V, 0, color, &j);
+//    printf("Number of connected vertexes [%d]\n", j);
+//    free(color);
+//}
+
+int F7_SearchPath(Graph* G, char* filename){
+    printf("\n   [DELETE VERTEX]\n");
     if (CheckGraph(G))
         return 0;
     char* name;
-    int V, j=0;
-    printf("Enter vertexs' name:");
-    name = getstring("");
-    V = FindVertex(G, name);
-    if (V == -1) {
+    int i = 0, V1, V2;
+    printf("Enter 1st vertex name:");
+    name = getstring();
+    V1 = FindVertex(G, name);
+    if (V1 == -1) {
         printf("The vertex wasn't found.\n");
         return 0;
     }
-    int* color = (int*)calloc(G->size, sizeof(int)); //0-белая,1-серая,-1-черная
-    SearchAdjacent(G, V, 0, color, &j);
-    printf("Number of connected vertexes [%d]\n", j);
-    free(color);
+    printf("Enter 2nd vertex name:");
+    name = getstring();
+    V2 = FindVertex(G, name);
+    if (V2 == -1) {
+        printf("The vertex wasn't found.\n");
+        return 0;
+    }
+    printf("Path: \n");
+    int Length = FindPath(G, V1, V2);
+    printf("%d",Length);
+
 }
 //удаление графа                            +
 int F8_FreeGraph(Graph* G, char* filename)
@@ -309,30 +341,40 @@ int F8_FreeGraph(Graph* G, char* filename)
 }
 
 //удаление вершины                                        +
-void DeleteVertex(Graph* G, int v)
-{
+void DeleteVertex(Graph* G, int v) {
     if (G->Vert[v]->head != NULL)  //удаление списка смежности
         if (G->Vert[v]->head->Verb != NULL) {
-            Adjacent* V = G->Vert[v]->head;
-            Adjacent* last;
-            while (1) {
-                last = V;
-                if (V->next == NULL) {
-                    DeleteCommunication(G->Vert[v], last->Verb);
-                    free(V);
-                    break;
+            Adjacent *V = G->Vert[v]->head;
+            Adjacent *last = V;
+
+//            while (1) {
+//                last = V;
+//                if (V->next == NULL) {
+//                    DeleteCommunication(G->Vert[v], last->Verb);
+//                    free(V);
+//                    break;
+//                } else
+//                    V = V->next;
+//                DeleteCommunication(G->Vert[v], last->Verb);
+//                free(last);
+//            }
+            for (int i = 0; i < G->size; i++) {
+                Adjacent *a;
+                if (G->Vert[i]->head != NULL) {
+                    a = G->Vert[i]->head;
+                    for (int j = 0; j < G->Vert[i]->count; j++) {
+                        if (a!=NULL && a->Verb == G->Vert[v])
+                            DeleteCommunication(G->Vert[v], G->Vert[i]);
+                        a = a->next;
+                    }
                 }
-                else
-                    V = V->next;
-                DeleteCommunication(G->Vert[v], last->Verb);
-                free(last);
             }
+            free(G->Vert[v]->name);
+            G->Vert[v] = G->Vert[G->size - 1];
+            G->Vert[G->size - 1] = NULL;
+            G->Vert = (Vertex **) realloc(G->Vert, (G->size - 1) * sizeof(Vertex *));
+            G->size--;
         }
-    free(G->Vert[v]->name);
-    G->Vert[v] = G->Vert[G->size - 1];
-    G->Vert[G->size - 1] = NULL;
-    G->Vert = (Vertex**)realloc(G->Vert, (G->size - 1) * sizeof(Vertex*));
-    G->size--;
 }
 //удаление заданной вершины из списка смежности           +
 void DeleteCommunication(Vertex* v1, Vertex* v2)
@@ -482,12 +524,12 @@ Vertex* CreateVertex(Graph* G, int x, int y, char* name)
 void RandomStr(char* buf, int l)
 {
     for (int i = 0; i < l; i++)
-        buf[i] = rand() % 28 + 'A';
+        buf[i] = rand() % 27 + 'A';
     buf[l] = '\0';
 }
 //создание рандомного графа                                        +
 void RandomGraph(Graph* G, int V, int E, int a)
-{
+{      srand((unsigned int) time);
     if (a == 1) {
         F8_FreeGraph(G,""); //очистка прошлого графа, если он был
         G->Vert = (Vertex**)calloc(V, sizeof(Vertex*));
@@ -710,4 +752,71 @@ int distance(int x1, int x2, int y1, int y2)
     float dist;
     dist = sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
     return dist;
+}
+
+int FindPath(Graph* G, int V1, int V2)
+{   long long unsigned size = G->size;
+     unsigned g[size] [size];
+     unsigned d[size] [size];
+
+    for(int i = 0; i < size; i++)
+    {   Adjacent *kl;
+        for (int j = 0; j < size; j++) {
+            kl = G->Vert[i]->head;
+            while (kl != 0 && kl->Verb!=G->Vert[j])
+                kl = kl->next;
+           if(kl != NULL && G->Vert[j] == kl->Verb) {
+               g[i][j] = 0;
+               d[i][j] = kl->weight;
+           } else {
+               g[i][j] = 0;
+               d[i][j] = 20000000;
+           }
+        }
+    }
+
+    path *Short = (path*) calloc(1,sizeof(path));
+    Short->Begin = (int*) calloc(1,sizeof(int));
+    Short->len = 0;
+//    int* mom = Short->Begin;
+//    int count = 0;
+    for (int k = 0; k < size; k++)
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++) {
+                if (d[i][j] > d[i][k] + d[k][j])
+                {
+                    d[i][j] = d[i][k] + d[k][j];
+                    g[i][j] = k;// матрица предков по которой востанавливается путь
+               }
+        }
+    PathBorn(g, d, V1, V2, G->size);
+    return d[V1][V2];
+}
+
+int revealing (unsigned **g, unsigned **d, unsigned v1, unsigned v2, path *path1,unsigned size) // рекурсивная функция восстановления пути
+{
+    unsigned r;
+    r = *(g+v1*size+v2);
+    if(v1 == v2)
+        return 0;
+    revealing(g, d, v1, r, path1, size);
+    unsigned *ptr = path1->Begin;
+    while (ptr+1 != NULL)
+    {
+        ptr++;
+    }
+    path1->len++;
+    path1->Begin = realloc(path1->Begin,path1->len);
+    *ptr = r;
+    printf("%d", r);
+    revealing(g, d, r, v2, path1, size);
+    return 0;
+}
+
+path* PathBorn(unsigned **g, unsigned **d, unsigned v1, unsigned v2, unsigned size)
+{
+    path *path1 = calloc(1,sizeof(path));
+    path1->Begin = calloc(1,sizeof(unsigned));
+    revealing(g, d, v1, v2, path1, size);
+    return path1;
 }
