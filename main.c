@@ -54,7 +54,7 @@ typedef struct path{
 } path;
 //const int K = 3;
 typedef struct pathCont{
-    path *A;
+    path A[100];
     int amount;
 }pathCont;
 int F0_Menu();                //меню
@@ -78,15 +78,16 @@ int Load(Graph* G, FILE* file);
 void Save(Graph* G, char* filename);
 int Search(Graph* G, char* filename);
 //         [УДАЛЕНИЕ]
-void DeleteCommunication(Vertex* v1, Vertex* v2);
+void DeleteCommunication1(Vertex* v1, Vertex* v2);
+void DeleteCommunication2(Vertex* v1, Vertex* v2);
 void DeleteVertex(Graph* G, int v);
 
 //          [ПОИСК]
 int FindVertex(Graph* G, char* name);
 void SearchAdjacent(Graph* G, int n, int a, int* color, int* j);
 path* FindPath(struct Graph* G, int V1, int V2);
-path* PathBorn(int size, int *g, int *d, int v1, int v2);
-int revealing (int size, int *g, int *d, int v1, int v2, path *path1); // рекурсивная функция восстановления пути
+path* PathBorn(int size, int *g, float *d, int v1, int v2);
+int revealing (int size, int *g, float *d, int v1, int v2, path *path1); // рекурсивная функция восстановления пути
 path* YenKSP(Graph *g,int v1,int v2, int K);
 void sort(path* A,int size);
 void printPath(path *a, Graph *G);
@@ -115,7 +116,7 @@ void isolate (Graph *G, int v){
             a = G->Vert[i]->head;
             for (int j = 0; j < G->Vert[i]->count; j++) {
                 if (a != NULL && a->Verb == G->Vert[v])
-                    DeleteCommunication(G->Vert[v], G->Vert[i]);
+                    DeleteCommunication2(G->Vert[v], G->Vert[i]);
                 a = a->next;
             }
         }
@@ -123,16 +124,20 @@ void isolate (Graph *G, int v){
 
 }
 void printPath(path *a, Graph *G){
-    for (int i = 0; i < a->amount; i++) {
-        if(i == a->amount - 1)
-            printf("%s",G->Vert[a->Begin[i]]->name);
-        else
-            printf("%s-->",G->Vert[a->Begin[i]]->name);
+    if (a == 0)
+        return;
+    if(a->len < 2000000.0) {
+        for (int i = 0; i < a->amount; i++) {
+            if (i == a->amount - 1)
+                printf("%s", G->Vert[a->Begin[i]]->name);
+            else
+                printf("%s-->", G->Vert[a->Begin[i]]->name);
+        }
     }
-    if (a->len < 20000000.0)
-        printf("   Length : %f\n",a->len);
+    if (a->len < 2000000.0)
+        printf("   Length : %7.2f\n",a->len);
     else
-        printf(" !! Cant reach !! ");
+        printf("");
 
 }
 int main()
@@ -329,9 +334,10 @@ int F6_PrintGraph(Graph* G, char* filename)
 //}
 
 int F7_SearchPath(Graph* G, char* filename){
-    printf("\n   [DELETE VERTEX]\n");
+    printf("\n   [FIND PATH]\n");
     if (CheckGraph(G))
         return 0;
+    path A[100];
     char* name;
     int i = 0, V1, V2;
     printf("Enter 1st vertex name:");
@@ -349,18 +355,8 @@ int F7_SearchPath(Graph* G, char* filename){
         return 0;
     }
     printf("Path: \n");
-    path *A;
-    A  = YenKSP(G, V1, V2, 3);
-//    path* Short = FindPath(G, V1, V2);
-//    int Length = Short->len;
-//    for (int i = 0; i < Short->amount; i++) {
-//        printf("%s-->",G->Vert[Short->Begin[i]]->name);
-//    }
-//    printf("%s",G->Vert[V2]->name);
-//    if (Length != 20000000)
-//        printf("   Length : %d\n",Length);
-//    else
-//        printf(" !! Cant reach !! ");
+
+     YenKSP(G, V1, V2, 3);
 }
 //удаление графа                            +
 int F8_FreeGraph(Graph* G, char* filename)
@@ -412,7 +408,7 @@ void DeleteVertex(Graph* G, int v) {
                     a = G->Vert[i]->head;
                     for (int j = 0; j < G->Vert[i]->count; j++) {
                         if (a != NULL && a->Verb == G->Vert[v])
-                            DeleteCommunication(G->Vert[v], G->Vert[i]);
+                            DeleteCommunication1(G->Vert[v], G->Vert[i]);
                         a = a->next;
                     }
                 }
@@ -426,23 +422,24 @@ void DeleteVertex(Graph* G, int v) {
 
 }
 //удаление заданной вершины из списка смежности           +
-void DeleteCommunication(Vertex* v1, Vertex* v2)
-{//v1-что удаляем, v2-откуда удаляем
-    Adjacent* V = v2->head;
-    Adjacent* last = V;
+void DeleteCommunication1(Vertex* v1, Vertex* v2) {//v1-что удаляем, v2-откуда удаляем
+    Adjacent *V = v2->head;
+    Adjacent *last = V;
     int i = 0;
+    if (V != NULL) {
     while (V->Verb != v1) {
         last = V;
         V = V->next;
         i++;
+        if (V == 0)
+            return;
     }
     if (i != 0) {
         if (V->next != NULL)
             last->next = V->next;
         else
             last->next = NULL;
-    }
-    else {
+    } else {
         if (V->next != NULL)
             v2->head = V->next;
         else
@@ -451,7 +448,34 @@ void DeleteCommunication(Vertex* v1, Vertex* v2)
     v2->count--;
     free(V);
 }
-
+}
+void DeleteCommunication2(Vertex* v1, Vertex* v2) {//v1-что удаляем, v2-откуда удаляем
+    Adjacent *V = v2->head;
+    Adjacent *last = V;
+    int i = 0;
+    if (V != NULL) {
+        while (V->Verb != v1) {
+            last = V;
+            V = V->next;
+            i++;
+            if (V == 0)
+                return;
+        }
+        if (i != 0) {
+            if (V->next != NULL)
+                last->next = V->next;
+            else
+                last->next = NULL;
+        } else {
+            if (V->next != NULL)
+                v2->head = V->next;
+            else
+                v2->head = NULL;
+        }
+        v2->count--;
+        //free(V);
+    }
+}
 
 //           [ФАЙЛ]
 //загрузка таблицы                                        +
@@ -806,7 +830,7 @@ float distance(int x1, int x2, int y1, int y2)
 path* FindPath(Graph* G, int V1, int V2)
 {   long long int size = G->size;
      int *g = calloc(size*size,sizeof(int));
-     int *d= calloc(size*size,sizeof(int));
+     float *d= calloc(size*size,sizeof(int));
 
     for(int i = 0; i < size; i++)
     {   Adjacent *kl;
@@ -819,7 +843,7 @@ path* FindPath(Graph* G, int V1, int V2)
                d[size*i+j] = kl->weight;
            } else {
                g[size*i+j] = 0;
-               d[size*i+j] = 20000000;
+               d[size*i+j] = 2000000;
            }
         }
     }
@@ -847,7 +871,7 @@ path* FindPath(Graph* G, int V1, int V2)
     return Short;
 }
 
-int revealing (int size, int *g, int *d, int v1, int v2, path *path1) // рекурсивная функция восстановления пути
+int revealing (int size, int *g, float *d, int v1, int v2, path *path1) // рекурсивная функция восстановления пути
 {
     int r;
     r = g[size*v1 + v2];
@@ -855,7 +879,7 @@ int revealing (int size, int *g, int *d, int v1, int v2, path *path1) // рек�
         return 0;
     revealing(size, g, d, v1, r, path1);
     path1->amount++;
-    path1->Begin = realloc(path1->Begin,path1->amount);
+    path1->Begin = realloc(path1->Begin,path1->amount*sizeof(int));
     int *ptr = path1->Begin;
     ptr+=path1->amount - 1;
     *ptr = r;
@@ -863,13 +887,14 @@ int revealing (int size, int *g, int *d, int v1, int v2, path *path1) // рек�
     return 0;
 }
 
-path* PathBorn(int size, int *g, int *d, int v1, int v2)
+path* PathBorn(int size, int *g, float *d, int v1, int v2)
 {
     path *path1 = calloc(1,sizeof(path));
     path1->amount++;
     path1->Begin = realloc(path1->Begin,path1->amount);
     *path1->Begin = v1;
-    revealing(size, g, d, v1, v2, path1);
+    if (v1 != v2)
+     revealing(size, g, d, v1, v2, path1);
     path1->amount++;
     path1->Begin = realloc(path1->Begin,path1->amount);
     int *ptr = path1->Begin;
@@ -880,7 +905,7 @@ path* PathBorn(int size, int *g, int *d, int v1, int v2)
 
 path* YenKSP(Graph * G, int v1, int v2, int K) {// поиск К-ого кратчайшего пути считается, что все остальные пути(К - (К-1))) уже найдены
 //// Determine the shortest path from the source to the sink.
-  path  *A = calloc(1,sizeof(struct path));
+  path A[1000];
   A[0] = *FindPath(G, v1, v2);
   int flag;
   Graph *G_;// граф для удаления соединений
@@ -888,44 +913,49 @@ path* YenKSP(Graph * G, int v1, int v2, int K) {// поиск К-ого крат
 
 //// Initialize the set to store the potential kth shortest path.
    pathCont *B = calloc(1, sizeof(pathCont));
-   B->A = calloc(1,sizeof(path));
+
+   B->amount = 0;
     for(int k = 1;k <= K; k++){
 //// The spur node ranges from the first node to the next to last node in the previous k-shortest path.
         for(int i = 0; i <= A[k-1].amount - 2; i++) {
 //// Spur node is retrieved from the previous k-shortest path, k − 1.
             G_ = makeCopy(G);
-           int spurNode = A[k - 1].Begin[i];
+            int spurNode = A[k - 1].Begin[i];
 //// The sequence of nodes from the source to the spur node of the previous k-shortest path.
-           path* rootPath = calloc(1,sizeof(path)); // Заполняем корневой путь
-           rootPath->Begin = calloc(i+1,sizeof(int));
-           if (i != 0) {
-               rootPath->amount = i + 1;
-               rootPath->isNode = 0;
-           }
-           if ( i == 0 ){
-               rootPath->amount = i+2;
+            path *rootPath = calloc(1, sizeof(path)); // Заполняем корневой путь
+            rootPath->Begin = calloc(i + 1, sizeof(int));
+            rootPath = FindPath(G_, v1, spurNode);
+            if (v1 == spurNode) {
                 rootPath->isNode = 1;
-           }
-           int * ptr1 = rootPath->Begin;
-           int * ptr2 = A[0].Begin;
-           for (int m = 0; m < i+1; m++)
-           {
-                *ptr1 = *ptr2;
-                ptr1++;
-                ptr2++;
-           }
-           ptr1 = rootPath->Begin;
-           printPath(rootPath, G_);
-           //ptr2 = A[0].Begin;
+                rootPath->len = 0;
+            }
+//           if (i != 0) {
+//               rootPath->amount = i + 1;
+//               rootPath->isNode = 0;
+//           }
+//           if ( i == 0 ){
+//               rootPath->amount = i+2;
+//                rootPath->isNode = 1;
+//           }
+//           int * ptr1 = rootPath->Begin;
+//           int * ptr2 = A[0].Begin;
+//           for (int m = 0; m < i+1; m++)
+//           {
+//               rootPath->Begin[m] = A[0].Begin[m];
+//               printf("%d\n",rootPath->Begin[m]);
+//           }
+            int *ptr1 = rootPath->Begin;
+            //printPath(rootPath, G_);
+            int *ptr2;
 //// Remove the links that are part of the previous shortest paths which share the same root path.
             for (int j = 0; j < k; j++) {
                 ptr2 = A[j].Begin;
                 flag = 0;
                 if (ptr2 != NULL) {
                     int p;
-                    if(i != 0)
+                    if (i != 0)
                         p = rootPath->amount;
-                    if(i == 0)
+                    if (i == 0)
                         p = rootPath->amount - 1;
                     for (int l = 0; l < p; l++) {
                         if (*ptr1 != *ptr2)
@@ -934,50 +964,74 @@ path* YenKSP(Graph * G, int v1, int v2, int K) {// поиск К-ого крат
                         ptr2++;
                     }
                     if (flag == 0) {
-                        DeleteCommunication(G_->Vert[A[j].Begin[i + 1]], G_->Vert[A[j].Begin[i]]);
-                        printf("Deleted %d--%d\n",A[j].Begin[i], A[j].Begin[i+1]);
+                        DeleteCommunication2(G_->Vert[A[j].Begin[i + 1]], G_->Vert[A[j].Begin[i]]);
+                        //printf("Deleted %d--%d\n", A[j].Begin[i], A[j].Begin[i + 1]);
                     }
 
                 }
             }
-            ptr1 = rootPath->Begin;
-            for (int j = 0; j < i; j++) {
-                if (*ptr1 != spurNode) {
-                    isolate(G_, *ptr1);
-                    printf("isolated: %d", *ptr1);
+            int *ptr = rootPath->Begin;
+            for (int j = 0; j < i + 1; j++) {
+                if (*ptr != spurNode) {
+                    isolate(G_, *ptr);
+                    //printf("isolated: %d", rootPath->Begin[i]);
                 }
-                ptr1++;
+                ptr++;
             }
-            F6_PrintGraph(G_,"");
+            //F6_PrintGraph(G_, "");
 //// Calculate the spur path from the spur node to the sink.
             path *spurPath;
 
-            ptr1++;
-            spurPath = FindPath(G_, *ptr1, v2);// от последней вершины rootPath
-            printPath(spurPath, G_);
-            path *totalPath = pathsumm(rootPath,spurPath);
-            printPath(totalPath, G_);
-            B->A[B->amount+1] = *totalPath;
-            B->amount++;
-            B->A = realloc(A,B->amount);
+            spurPath = FindPath(G_, spurNode, v2);// от последней вершины rootPath
+            //printPath(spurPath, G_);
+            path *totalPath = pathsumm(rootPath, spurPath);
+            //printPath(totalPath, G_);
+            //printf("\n\n");
+            if (totalPath->len != 2000000) {
+
+                B->A[B->amount] = *totalPath;
+                B->amount++;
+            }
 //// Add the potential k-shortest path to the heap.
 // Add back the edges and nodes that were removed from the graph.
-
+        }
             if(B->amount == 0) {//// This handles the case of there being no spur paths, or no spur paths left.
 //// This could happen if the spur paths have already been exhausted (added to A),
 //// or there are no spur paths at all - such as when both the source and sink vertices
 //// lie along a "dead end".
-                printf("break");
+                printf("break\n{^[$]^}");
                 break;
             }
 
-            }
+
         //// Sort the potential k-shortest paths by cost.
         sort(B->A, B->amount);
-        A = realloc(A,k+1);
-        A[k] = B->A[0];
+        //printPath(&B->A[0],G);
+
+        while (1)
+        {   if (A[k - 1].len != B->A[0].len)
+                break;
+            for (int i = 0; i < B->amount; ++i) {
+                B->A[i] = B->A[i+1];
+            }
+            B->amount--;
         }
-    return A;
+        A[k] = B->A[0];
+        for (int i = 0; i < B->amount; ++i) {
+            B->A[i] = B->A[i+1];
+        }
+        B->amount--;
+
+        }
+
+    for (int j = 0; j < 3; ++j) {
+        if(A[0].len == 2000000){
+            printf("<!!cant reach!!>\n");
+            break;
+        }
+        printPath(&A[j],G);
+    }
+    return NULL;
         }
 path *pathsumm(path *pPath, path *pPath1) {// склеивает два пути
     path *totalPath;
@@ -989,7 +1043,7 @@ path *pathsumm(path *pPath, path *pPath1) {// склеивает два пути
     for (int i = 0; i < pPath->amount-1 ; i++) {
         ptr++;
     }
-    totalPath = realloc(totalPath, pPath->amount + pPath1->amount);
+    totalPath = realloc(totalPath, (pPath->amount + pPath1->amount));
     for (int i = 0; i < pPath1->amount; i++) {
         *ptr = *ptr1;
         ptr++;
@@ -998,7 +1052,10 @@ path *pathsumm(path *pPath, path *pPath1) {// склеивает два пути
     if(pPath->isNode)
         pPath->amount++;
     totalPath->len = pPath->len + pPath1->len;
-    totalPath->amount = pPath->amount + pPath1->amount - 2;
+    if(pPath->isNode)
+        totalPath->amount = pPath->amount + pPath1->amount - 2;
+    else
+        totalPath->amount = pPath->amount + pPath1->amount - 1;
     return totalPath;
 }
 
@@ -1060,13 +1117,13 @@ int F9_Timing(Graph* G, char* filename){//таймирование алгори�
 
 }
 void sort(path* A,int size){
-    int temp;
+    struct path temp;
     for (int i = 0; i < size - 1; i++) {
         for (int j = 0; j < size - i - 1; j++) {
-            if (A[j].len < A[j + 1].len) {
-                temp = A[j].len;
-                A[j].len = A[j + 1].len;
-                A[j + 1].len = temp;
+            if (A[j].len > A[j + 1].len) {
+                temp = A[j];
+                A[j] = A[j + 1];
+                A[j + 1] = temp;
             }
         }
     }
